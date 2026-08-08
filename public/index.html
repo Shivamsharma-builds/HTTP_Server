@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>C++ HTTP Server</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1rem; color: #1a1a1a; }
+        h1 { font-size: 1.5rem; }
+        code { background: #f0f0f0; padding: 0.15rem 0.4rem; border-radius: 4px; }
+        ul { line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <h1>It works! 🎉</h1>
+    <p>This page is being served by a hand-written C++ HTTP server using raw TCP sockets and non-blocking I/O (epoll).</p>
+    <p>Try it out:</p>
+    <ul>
+        <li><code>curl -i http://127.0.0.1:8080/</code></li>
+        <li><code>curl -X POST --data-binary @somefile.txt -H "X-Filename: somefile.txt" http://127.0.0.1:8080/upload</code></li>
+        <li><code>curl http://127.0.0.1:8080/files/somefile.txt</code></li>
+        <li><code>curl -X DELETE http://127.0.0.1:8080/files/somefile.txt</code></li>
+    </ul>
+</body>
+</html>
