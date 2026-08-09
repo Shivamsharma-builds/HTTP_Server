@@ -202,6 +202,12 @@ response is sent.
 
 ## 🚀 Getting Started
 
+### To compile the files in windows
+
+```
+g++ -std=c++14 -Wall -Wextra -Iheader src/main.cpp src/server.cpp src/socket.cpp src/http_request.cpp src/http_response.cpp -o server.exe -lws2_32          
+```
+
 ### Prerequisites
 
 Make sure the following tools are installed:
