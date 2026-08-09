@@ -1,0 +1,65 @@
+HTTP Server Project - Small Improvements
+
+1. Add standard HTTP response headers
+- Include Content-Length for all responses.
+- Add Connection: close explicitly if keep-alive is not supported.
+- Ensure headers are consistent for success, error, upload, and delete responses.
+
+2. Improve CGI safety
+- Avoid building shell commands with string concatenation.
+- Validate script paths strictly before execution.
+- Restrict execution to known safe directories.
+- Consider replacing shell-based CGI execution with a safer argument-based approach.
+
+3. Strengthen request parsing
+- Handle malformed requests better.
+- Validate Content-Length values properly.
+- Add support for chunked transfer encoding if needed.
+- Detect oversized or incomplete request bodies more clearly.
+
+4. Add CLI configuration
+- Add command-line arguments for host, port, public directory, and upload directory.
+- Replace hardcoded values in main with parsed options.
+- Make project easier to run and test without editing source files.
+
+5. Improve logging
+- Add timestamps to logs.
+- Log request method, path, and response status.
+- Log errors for socket failures, invalid requests, and file access problems.
+- Show upload/delete operations clearly.
+
+6. Harden file upload handling
+- Reject invalid filenames or very long names.
+- Prevent overwriting existing files unless intentionally allowed.
+- Add file type/extension validation when needed.
+- Keep path traversal protections explicit and strict.
+
+7. Add graceful shutdown
+- Handle SIGINT/SIGTERM cleanly.
+- Close listening sockets properly before exiting.
+- Stop the main loop without leaving descriptors open.
+
+8. Improve path handling
+- Normalize path separators consistently.
+- Reject absolute paths and ambiguous paths.
+- Ensure sanitized paths cannot escape the intended public or upload directories.
+
+9. Add a simple test suite
+- Test static file serving.
+- Test 404 responses.
+- Test upload and delete endpoints.
+- Test path traversal protection.
+- Test CGI failure handling.
+
+10. Consider moving from select() to a more scalable event model
+- poll() or epoll() would scale better for many concurrent clients.
+- This is the next major step if the server is expected to handle heavier traffic.
+
+Priority order:
+1. Add response headers and request validation
+2. Improve CGI safety
+3. Add CLI config and logging
+4. Harden uploads and path handling
+5. Scale the event loop for better concurrency
+
+This project is already a strong learning server, but these small improvements would make it more reliable, safer, and closer to a practical HTTP server.
