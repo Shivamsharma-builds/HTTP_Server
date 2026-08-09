@@ -45,8 +45,8 @@ std::string HttpResponse::toString() const {
     std::ostringstream out;
     out << "HTTP/1.1 " << statusCode_ << " " << statusMessage(statusCode_) << "\r\n";
 
-    for (const auto& [key, value] : headers_) {
-        out << key << ": " << value << "\r\n";
+    for (const auto& entry : headers_) {
+        out << entry.first << ": " << entry.second << "\r\n";
     }
     out << "Content-Length: " << body_.size() << "\r\n";
 

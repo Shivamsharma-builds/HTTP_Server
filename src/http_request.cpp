@@ -99,10 +99,10 @@ HttpRequest HttpRequest::parse(const std::string& raw) {
     return req;
 }
 
-std::optional<size_t> HttpRequest::computeExpectedLength(const std::string& raw) {
+http_util::optional<size_t> HttpRequest::computeExpectedLength(const std::string& raw) {
     size_t headerEnd = raw.find("\r\n\r\n");
     if (headerEnd == std::string::npos) {
-        return std::nullopt;  // headers not fully received yet
+        return http_util::nullopt;  // headers not fully received yet
     }
 
     size_t headerBytes = headerEnd + 4;
@@ -131,8 +131,8 @@ std::optional<size_t> HttpRequest::computeExpectedLength(const std::string& raw)
     return headerBytes + contentLength;
 }
 
-std::optional<std::string> HttpRequest::getHeader(const std::string& key) const {
+http_util::optional<std::string> HttpRequest::getHeader(const std::string& key) const {
     auto it = headers.find(toLower(key));
-    if (it == headers.end()) return std::nullopt;
+    if (it == headers.end()) return http_util::nullopt;
     return it->second;
 }

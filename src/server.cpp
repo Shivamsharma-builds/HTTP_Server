@@ -4,15 +4,52 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <sys/epoll.h>
+#include <vector>
 #include <sys/stat.h>
-#include <unistd.h>
 
-namespace fs = std::filesystem;
+#if defined(__MINGW32__) || defined(_WIN32)
+extern "C" FILE* _popen(const char* command, const char* mode);
+extern "C" int _pclose(FILE* stream);
+#endif
+
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <direct.h>
+#include <io.h>
+#else
+#include <unistd.h>
+#include <sys/select.h>
+#endif
+
+namespace fs_compat {
+bool pathExists(const std::string& path) {
+    struct stat st;
+    return stat(path.c_str(), &st) == 0;
+}
+
+bool isRegularFile(const std::string& path) {
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0) return false;
+    return (st.st_mode & S_IFMT) == S_IFREG;
+}
+
+bool createDirectory(const std::string& path) {
+#ifdef _WIN32
+    if (_mkdir(path.c_str()) == 0) return true;
+#else
+    if (mkdir(path.c_str(), 0777) == 0) return true;
+#endif
+    return errno == EEXIST;
+}
+
+bool removeFile(const std::string& path) {
+    return std::remove(path.c_str()) == 0;
+}
+}
 
 namespace {
 constexpr int kMaxEvents = 64;
@@ -26,7 +63,7 @@ Server::Server(std::string host, int port, std::string publicDir, std::string up
       publicDir_(std::move(publicDir)),
       uploadDir_(std::move(uploadDir)),
       epollFd_(-1) {
-    fs::create_directories(uploadDir_);
+    fs_compat::createDirectory(uploadDir_);
 }
 
 bool Server::start() {
@@ -36,20 +73,6 @@ bool Server::start() {
 
     Socket::setNonBlocking(serverSocket_.getFd());
 
-    epollFd_ = epoll_create1(0);
-    if (epollFd_ < 0) {
-        std::cerr << "epoll_create1() failed: " << strerror(errno) << "\n";
-        return false;
-    }
-
-    epoll_event ev{};
-    ev.events = EPOLLIN;
-    ev.data.fd = serverSocket_.getFd();
-    if (epoll_ctl(epollFd_, EPOLL_CTL_ADD, serverSocket_.getFd(), &ev) < 0) {
-        std::cerr << "epoll_ctl() failed to add server socket: " << strerror(errno) << "\n";
-        return false;
-    }
-
     std::cout << "HTTP Server started on http://" << (host_.empty() ? "127.0.0.1" : host_) << ":"
               << port_ << "\n";
     std::cout << "Waiting for connections...\n";
@@ -57,26 +80,42 @@ bool Server::start() {
 }
 
 void Server::run() {
-    std::array<epoll_event, kMaxEvents> events{};
-
     while (true) {
-        int n = epoll_wait(epollFd_, events.data(), kMaxEvents, -1);
+        fd_set readSet;
+        FD_ZERO(&readSet);
+        FD_SET(serverSocket_.getFd(), &readSet);
+
+        int maxFd = serverSocket_.getFd();
+        for (const auto& entry : clientBuffers_) {
+            int fd = entry.first;
+            FD_SET(fd, &readSet);
+            if (fd > maxFd) maxFd = fd;
+        }
+
+#ifdef _WIN32
+        int n = select(0, &readSet, nullptr, nullptr, nullptr);
+#else
+        int n = select(maxFd + 1, &readSet, nullptr, nullptr, nullptr);
+#endif
         if (n < 0) {
             if (errno == EINTR) continue;
-            std::cerr << "epoll_wait() failed: " << strerror(errno) << "\n";
+            std::cerr << "select() failed: " << strerror(errno) << "\n";
             break;
         }
 
-        for (int i = 0; i < n; ++i) {
-            int fd = events[i].data.fd;
+        if (FD_ISSET(serverSocket_.getFd(), &readSet)) {
+            handleNewConnections();
+        }
 
-            if (fd == serverSocket_.getFd()) {
-                handleNewConnections();
-            } else if (events[i].events & (EPOLLHUP | EPOLLERR)) {
-                closeClient(fd);
-            } else if (events[i].events & EPOLLIN) {
-                handleClientReadable(fd);
+        std::vector<int> readyClients;
+        for (const auto& entry : clientBuffers_) {
+            if (FD_ISSET(entry.first, &readSet)) {
+                readyClients.push_back(entry.first);
             }
+        }
+
+        for (int fd : readyClients) {
+            handleClientReadable(fd);
         }
     }
 }
@@ -87,12 +126,6 @@ void Server::handleNewConnections() {
         if (clientFd < 0) break;  // no more pending connections (EAGAIN/EWOULDBLOCK)
 
         Socket::setNonBlocking(clientFd);
-
-        epoll_event ev{};
-        ev.events = EPOLLIN;
-        ev.data.fd = clientFd;
-        epoll_ctl(epollFd_, EPOLL_CTL_ADD, clientFd, &ev);
-
         clientBuffers_[clientFd] = "";
     }
 }
@@ -102,29 +135,41 @@ void Server::handleClientReadable(int clientFd) {
     std::string& buffer = clientBuffers_[clientFd];
 
     while (true) {
+#ifdef _WIN32
+        int bytesRead = recv(clientFd, buf, sizeof(buf), 0);
+#else
         ssize_t bytesRead = read(clientFd, buf, sizeof(buf));
+#endif
         if (bytesRead > 0) {
             buffer.append(buf, static_cast<size_t>(bytesRead));
         } else if (bytesRead == 0) {
-            // Peer closed the connection.
             closeClient(clientFd);
             return;
         } else {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) break;  // drained for now
+#ifdef _WIN32
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK || err == WSAEINTR) break;
+#else
+            if (errno == EAGAIN || errno == EWOULDBLOCK) break;
+#endif
             closeClient(clientFd);
             return;
         }
     }
 
     auto expected = HttpRequest::computeExpectedLength(buffer);
-    if (!expected.has_value()) return;  // headers not fully received yet
+    if (!expected) return;  // headers not fully received yet
 
     if (buffer.size() > kMaxBodySize) {
         HttpResponse res(413);
         res.setHeader("Content-Type", "text/plain");
         res.setBody("Payload Too Large\n");
         std::string out = res.toString();
+#ifdef _WIN32
+        send(clientFd, out.c_str(), static_cast<int>(out.size()), 0);
+#else
         write(clientFd, out.c_str(), out.size());
+#endif
         closeClient(clientFd);
         return;
     }
@@ -137,11 +182,20 @@ void Server::handleClientReadable(int clientFd) {
 
     size_t totalSent = 0;
     while (totalSent < out.size()) {
+#ifdef _WIN32
+        int sent = send(clientFd, out.c_str() + totalSent, static_cast<int>(out.size() - totalSent), 0);
+        if (sent < 0) {
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK || err == WSAEINTR) continue;
+            break;
+        }
+#else
         ssize_t sent = write(clientFd, out.c_str() + totalSent, out.size() - totalSent);
         if (sent < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
             break;
         }
+#endif
         totalSent += static_cast<size_t>(sent);
     }
 
@@ -149,8 +203,11 @@ void Server::handleClientReadable(int clientFd) {
 }
 
 void Server::closeClient(int clientFd) {
-    epoll_ctl(epollFd_, EPOLL_CTL_DEL, clientFd, nullptr);
+#ifdef _WIN32
+    closesocket(clientFd);
+#else
     close(clientFd);
+#endif
     clientBuffers_.erase(clientFd);
 }
 
@@ -197,7 +254,7 @@ void Server::handleGet(const HttpRequest& req, HttpResponse& res) {
         std::string filename = sanitizePath(path.substr(std::string("/files/").size()));
         std::string fullPath = uploadDir_ + "/" + filename;
 
-        if (!fs::exists(fullPath) || !fs::is_regular_file(fullPath)) {
+        if (!fs_compat::pathExists(fullPath) || !fs_compat::isRegularFile(fullPath)) {
             res.setStatus(404);
             res.setHeader("Content-Type", "text/plain");
             res.setBody("404 Not Found: " + path + "\n");
@@ -270,14 +327,14 @@ void Server::handleDelete(const HttpRequest& req, HttpResponse& res) {
         std::string filename = sanitizePath(req.path.substr(std::string("/files/").size()));
         std::string fullPath = uploadDir_ + "/" + filename;
 
-        if (!fs::exists(fullPath)) {
+        if (!fs_compat::pathExists(fullPath)) {
             res.setStatus(404);
             res.setHeader("Content-Type", "text/plain");
             res.setBody("404 Not Found: " + req.path + "\n");
             return;
         }
 
-        fs::remove(fullPath);
+        fs_compat::removeFile(fullPath);
         res.setStatus(204);
         res.setHeader("Content-Type", "text/plain");
         return;
@@ -292,7 +349,7 @@ bool Server::tryServeStaticFile(const std::string& path, HttpResponse& res) {
     std::string safePath = sanitizePath(path);
     std::string fullPath = publicDir_ + "/" + safePath;
 
-    if (!fs::exists(fullPath) || !fs::is_regular_file(fullPath)) return false;
+    if (!fs_compat::pathExists(fullPath) || !fs_compat::isRegularFile(fullPath)) return false;
 
     std::ifstream file(fullPath, std::ios::binary);
     if (!file) return false;
@@ -313,10 +370,14 @@ bool Server::tryServeCgi(const HttpRequest& req, HttpResponse& res) {
     std::string scriptRelative = req.path.substr(std::string("/cgi-bin/").size());
     std::string scriptPath = publicDir_ + "/cgi-bin/" + sanitizePath(scriptRelative);
 
-    if (!fs::exists(scriptPath) || !fs::is_regular_file(scriptPath)) return false;
+    if (!fs_compat::pathExists(scriptPath) || !fs_compat::isRegularFile(scriptPath)) return false;
 
     std::string cmd = scriptPath + " 2>&1";
+#if defined(__MINGW32__) || defined(_WIN32)
+    FILE* pipe = _popen(cmd.c_str(), "r");
+#else
     FILE* pipe = popen(cmd.c_str(), "r");
+#endif
     if (!pipe) {
         res.setStatus(500);
         res.setHeader("Content-Type", "text/plain");
@@ -330,7 +391,11 @@ bool Server::tryServeCgi(const HttpRequest& req, HttpResponse& res) {
     while ((n = fread(buf, 1, sizeof(buf), pipe)) > 0) {
         output.write(buf, static_cast<std::streamsize>(n));
     }
+#if defined(__MINGW32__) || defined(_WIN32)
+    _pclose(pipe);
+#else
     pclose(pipe);
+#endif
 
     res.setStatus(200);
     res.setHeader("Content-Type", "text/plain");
