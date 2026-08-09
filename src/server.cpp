@@ -56,13 +56,41 @@ namespace {
 constexpr int kMaxEvents = 64;
 constexpr size_t kReadChunk = 65536;
 constexpr size_t kMaxBodySize = 20 * 1024 * 1024;  // 20 MB upload cap
+
+std::string resolvePathFromCwd(const std::string& path) {
+    if (path.empty()) return path;
+
+    if (path[0] == '/' || path[0] == '\\' || (path.size() > 1 && path[1] == ':')) {
+        return path;
+    }
+
+    char cwd[4096];
+#ifdef _WIN32
+    if (_getcwd(cwd, sizeof(cwd)) != nullptr) {
+        std::string base = cwd;
+        if (!base.empty() && base.back() != '\\' && base.back() != '/') {
+            base += "\\";
+        }
+        return base + path;
+    }
+#else
+    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+        std::string base = cwd;
+        if (!base.empty() && base.back() != '\\' && base.back() != '/') {
+            base += "/";
+        }
+        return base + path;
+    }
+#endif
+    return path;
+}
 }  // namespace
 
 Server::Server(std::string host, int port, std::string publicDir, std::string uploadDir)
     : host_(std::move(host)),
       port_(port),
-      publicDir_(std::move(publicDir)),
-      uploadDir_(std::move(uploadDir)),
+      publicDir_(resolvePathFromCwd(publicDir)),
+      uploadDir_(resolvePathFromCwd(uploadDir)),
       epollFd_(-1) {
     fs_compat::createDirectory(uploadDir_);
 }
