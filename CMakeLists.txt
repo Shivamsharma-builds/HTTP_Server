@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(http_server CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -18,7 +18,7 @@ add_executable(http_server
     src/http_response.cpp
 )
 
-target_include_directories(http_server PRIVATE include)
+target_include_directories(http_server PRIVATE ${CMAKE_SOURCE_DIR}/header)
 
 # Copy the public/ (static assets + cgi-bin) directory next to the built
 # binary so `./http_server` can find it via a relative path out of the box.
