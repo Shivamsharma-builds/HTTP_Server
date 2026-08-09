@@ -1,6 +1,7 @@
 #include "server.hpp"
 
 #include <array>
+#include <cerrno>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -55,13 +56,41 @@ namespace {
 constexpr int kMaxEvents = 64;
 constexpr size_t kReadChunk = 65536;
 constexpr size_t kMaxBodySize = 20 * 1024 * 1024;  // 20 MB upload cap
+
+std::string resolvePathFromCwd(const std::string& path) {
+    if (path.empty()) return path;
+
+    if (path[0] == '/' || path[0] == '\\' || (path.size() > 1 && path[1] == ':')) {
+        return path;
+    }
+
+    char cwd[4096];
+#ifdef _WIN32
+    if (_getcwd(cwd, sizeof(cwd)) != nullptr) {
+        std::string base = cwd;
+        if (!base.empty() && base.back() != '\\' && base.back() != '/') {
+            base += "\\";
+        }
+        return base + path;
+    }
+#else
+    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+        std::string base = cwd;
+        if (!base.empty() && base.back() != '\\' && base.back() != '/') {
+            base += "/";
+        }
+        return base + path;
+    }
+#endif
+    return path;
+}
 }  // namespace
 
 Server::Server(std::string host, int port, std::string publicDir, std::string uploadDir)
     : host_(std::move(host)),
       port_(port),
-      publicDir_(std::move(publicDir)),
-      uploadDir_(std::move(uploadDir)),
+      publicDir_(resolvePathFromCwd(publicDir)),
+      uploadDir_(resolvePathFromCwd(uploadDir)),
       epollFd_(-1) {
     fs_compat::createDirectory(uploadDir_);
 }
@@ -372,11 +401,16 @@ bool Server::tryServeCgi(const HttpRequest& req, HttpResponse& res) {
 
     if (!fs_compat::pathExists(scriptPath) || !fs_compat::isRegularFile(scriptPath)) return false;
 
-    std::string cmd = scriptPath + " 2>&1";
+    std::string cmd;
+    FILE* pipe = nullptr;
 #if defined(__MINGW32__) || defined(_WIN32)
-    FILE* pipe = _popen(cmd.c_str(), "r");
+    // On Windows, batch files might need to be invoked via cmd.exe.
+    // This also helps if the script path contains spaces.
+    cmd = "cmd.exe /c \"" + scriptPath + "\" 2>&1";
+    pipe = _popen(cmd.c_str(), "r");
 #else
-    FILE* pipe = popen(cmd.c_str(), "r");
+    cmd = scriptPath + " 2>&1";
+    pipe = popen(cmd.c_str(), "r");
 #endif
     if (!pipe) {
         res.setStatus(500);
