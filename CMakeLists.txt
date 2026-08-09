@@ -18,6 +18,10 @@ add_executable(http_server
     src/http_response.cpp
 )
 
+if(WIN32)
+    target_link_libraries(http_server PRIVATE ws2_32)
+endif()
+
 target_include_directories(http_server PRIVATE ${CMAKE_SOURCE_DIR}/header)
 
 # Copy the public/ (static assets + cgi-bin) directory next to the built

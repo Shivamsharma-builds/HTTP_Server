@@ -1,0 +1,32 @@
+[
+{
+  "directory": "C:/Users/shiva/Downloads/HTTP_Server/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles\\http_server.dir\\includes_CXX.rsp -g -std=gnu++14 -Wall -Wextra -o CMakeFiles\\http_server.dir\\src\\main.cpp.obj -c C:\\Users\\shiva\\Downloads\\HTTP_Server\\src\\main.cpp",
+  "file": "C:/Users/shiva/Downloads/HTTP_Server/src/main.cpp",
+  "output": "CMakeFiles/http_server.dir/src/main.cpp.obj"
+},
+{
+  "directory": "C:/Users/shiva/Downloads/HTTP_Server/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles\\http_server.dir\\includes_CXX.rsp -g -std=gnu++14 -Wall -Wextra -o CMakeFiles\\http_server.dir\\src\\server.cpp.obj -c C:\\Users\\shiva\\Downloads\\HTTP_Server\\src\\server.cpp",
+  "file": "C:/Users/shiva/Downloads/HTTP_Server/src/server.cpp",
+  "output": "CMakeFiles/http_server.dir/src/server.cpp.obj"
+},
+{
+  "directory": "C:/Users/shiva/Downloads/HTTP_Server/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles\\http_server.dir\\includes_CXX.rsp -g -std=gnu++14 -Wall -Wextra -o CMakeFiles\\http_server.dir\\src\\socket.cpp.obj -c C:\\Users\\shiva\\Downloads\\HTTP_Server\\src\\socket.cpp",
+  "file": "C:/Users/shiva/Downloads/HTTP_Server/src/socket.cpp",
+  "output": "CMakeFiles/http_server.dir/src/socket.cpp.obj"
+},
+{
+  "directory": "C:/Users/shiva/Downloads/HTTP_Server/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles\\http_server.dir\\includes_CXX.rsp -g -std=gnu++14 -Wall -Wextra -o CMakeFiles\\http_server.dir\\src\\http_request.cpp.obj -c C:\\Users\\shiva\\Downloads\\HTTP_Server\\src\\http_request.cpp",
+  "file": "C:/Users/shiva/Downloads/HTTP_Server/src/http_request.cpp",
+  "output": "CMakeFiles/http_server.dir/src/http_request.cpp.obj"
+},
+{
+  "directory": "C:/Users/shiva/Downloads/HTTP_Server/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles\\http_server.dir\\includes_CXX.rsp -g -std=gnu++14 -Wall -Wextra -o CMakeFiles\\http_server.dir\\src\\http_response.cpp.obj -c C:\\Users\\shiva\\Downloads\\HTTP_Server\\src\\http_response.cpp",
+  "file": "C:/Users/shiva/Downloads/HTTP_Server/src/http_response.cpp",
+  "output": "CMakeFiles/http_server.dir/src/http_response.cpp.obj"
+}
+]
