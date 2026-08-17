@@ -2,23 +2,335 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>C++ HTTP Server</title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1rem; color: #1a1a1a; }
-        h1 { font-size: 1.5rem; }
-        code { background: #f0f0f0; padding: 0.15rem 0.4rem; border-radius: 4px; }
-        ul { line-height: 1.8; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>C++ Server | Custom HTTP Server</title>
+
+    <meta
+        name="description"
+        content="A custom HTTP server built from scratch in C++ using raw TCP sockets and epoll."
+    />
+
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    />
 </head>
+
 <body>
-    <h1>It works! 🎉</h1>
-    <p>This page is being served by a hand-written C++ HTTP server using raw TCP sockets and non-blocking I/O (epoll).</p>
-    <p>Try it out:</p>
-    <ul>
-        <li><code>curl -i http://127.0.0.1:8080/</code></li>
-        <li><code>curl -X POST --data-binary @somefile.txt -H "X-Filename: somefile.txt" http://127.0.0.1:8080/upload</code></li>
-        <li><code>curl http://127.0.0.1:8080/files/somefile.txt</code></li>
-        <li><code>curl -X DELETE http://127.0.0.1:8080/files/somefile.txt</code></li>
-    </ul>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="/" class="logo">C++ Server</a>
+
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+
+    <!-- Hero -->
+    <main>
+
+        <section class="hero">
+            <div class="container">
+
+                <span class="badge">⚡ Running successfully</span>
+
+                <h1>
+                    A HTTP Server Built
+                    <span>From Scratch in C++</span>
+                </h1>
+
+                <p class="hero-description">
+                    A lightweight custom HTTP server built using raw TCP sockets,
+                    non-blocking I/O and Linux epoll.
+                </p>
+
+                <div class="hero-buttons">
+                    <a href="#features" class="btn primary">
+                        Explore Features
+                    </a>
+
+                    <a href="#api" class="btn secondary">
+                        View API
+                    </a>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Status -->
+        <section class="status-section">
+            <div class="container">
+
+                <div class="status-card">
+                    <div class="status-dot"></div>
+
+                    <div>
+                        <strong>Server Status</strong>
+                        <p>Online and accepting connections</p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- About -->
+        <section class="section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <span>ABOUT</span>
+                    <h2>How it works</h2>
+
+                    <p>
+                        This project implements a basic HTTP server without using
+                        frameworks such as Express, Apache or Nginx.
+                    </p>
+                </div>
+
+                <div class="about-grid">
+
+                    <div class="info-card">
+                        <h3>🌐 Raw TCP Sockets</h3>
+                        <p>
+                            The server communicates directly with clients using
+                            Linux TCP sockets.
+                        </p>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>⚡ Non-blocking I/O</h3>
+                        <p>
+                            Connections use non-blocking sockets so the server
+                            can handle multiple clients efficiently.
+                        </p>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>🔄 epoll</h3>
+                        <p>
+                            Linux epoll is used to monitor multiple connections
+                            without creating a thread for every client.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Features -->
+        <section id="features" class="section dark-section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <span>FEATURES</span>
+                    <h2>What the server supports</h2>
+                </div>
+
+                <div class="features-grid">
+
+                    <div class="feature-card">
+                        <div class="feature-icon">GET</div>
+                        <h3>GET Requests</h3>
+                        <p>
+                            Serve HTML, CSS, JavaScript and other static files.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">POST</div>
+                        <h3>File Upload</h3>
+                        <p>
+                            Upload files to the server using HTTP POST requests.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">GET</div>
+                        <h3>File Download</h3>
+                        <p>
+                            Download previously uploaded files through HTTP.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">DEL</div>
+                        <h3>File Deletion</h3>
+                        <p>
+                            Delete files using HTTP DELETE requests.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- API -->
+        <section id="api" class="section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <span>API</span>
+                    <h2>Available endpoints</h2>
+                </div>
+
+                <div class="api-list">
+
+                    <div class="api-item">
+                        <span class="method get">GET</span>
+                        <code>/</code>
+                        <p>Serve the home page.</p>
+                    </div>
+
+                    <div class="api-item">
+                        <span class="method get">GET</span>
+                        <code>/about</code>
+                        <p>Display information about the server.</p>
+                    </div>
+
+                    <div class="api-item">
+                        <span class="method get">GET</span>
+                        <code>/contact</code>
+                        <p>Display contact information.</p>
+                    </div>
+
+                    <div class="api-item">
+                        <span class="method post">POST</span>
+                        <code>/upload</code>
+                        <p>Upload a file to the server.</p>
+                    </div>
+
+                    <div class="api-item">
+                        <span class="method get">GET</span>
+                        <code>/files/:filename</code>
+                        <p>Download an uploaded file.</p>
+                    </div>
+
+                    <div class="api-item">
+                        <span class="method delete">DELETE</span>
+                        <code>/files/:filename</code>
+                        <p>Delete an uploaded file.</p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Terminal Examples -->
+        <section class="section dark-section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <span>EXAMPLES</span>
+                    <h2>Try the server</h2>
+                </div>
+
+                <div class="terminal">
+
+                    <div class="terminal-header">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <pre><code># Test the home page
+curl -i http://127.0.0.1:8080/
+
+# Upload a file
+curl -X POST \
+  --data-binary @somefile.txt \
+  -H "X-Filename: somefile.txt" \
+  http://127.0.0.1:8080/upload
+
+# Download a file
+curl http://127.0.0.1:8080/files/somefile.txt
+
+# Delete a file
+curl -X DELETE \
+  http://127.0.0.1:8080/files/somefile.txt</code></pre>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Upload -->
+        <section class="section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <span>UPLOAD</span>
+                    <h2>Upload a file</h2>
+
+                    <p>
+                        If your server supports browser-based POST requests,
+                        you can provide a simple upload interface here.
+                    </p>
+                </div>
+
+                <form
+                    action="/upload"
+                    method="POST"
+                    enctype="application/octet-stream"
+                    class="upload-form"
+                >
+
+                    <input
+                        type="file"
+                        name="file"
+                        id="file"
+                    />
+
+                    <button type="submit" class="btn primary">
+                        Upload File
+                    </button>
+
+                </form>
+
+            </div>
+        </section>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+
+            <p>
+                Built from scratch with ❤️ and C++
+            </p>
+
+            <p>
+                Custom HTTP Server • TCP Sockets • epoll
+            </p>
+
+        </div>
+    </footer>
+
+
+    <script src="script.js"></script>
+
 </body>
 </html>
