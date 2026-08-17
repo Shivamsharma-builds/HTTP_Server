@@ -13,7 +13,6 @@ COPY . .
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release
 
-
 FROM ubuntu:24.04
 
 WORKDIR /app
@@ -23,8 +22,8 @@ COPY --from=builder /app/public /app/public
 
 RUN mkdir -p /app/uploads
 
-ENV PORT=8080
+ENV PORT=10000
 
-EXPOSE 8080
+EXPOSE 10000
 
 CMD ["./http_server"]
